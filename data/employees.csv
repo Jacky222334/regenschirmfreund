@@ -1,0 +1,7 @@
+kuerzel,name,anstellungs_prozent,stationaer_anteil,verfuegbar,weather,regenschirm,score
+MA01,Dr. Anna Schmidt,100,60,True,Normal,False,0.0
+MA02,Dr. Max Weber,80,50,True,Sonnenschein,True,0.0
+MA03,Dr. Lisa Müller,100,70,True,Normal,False,0.0
+MA04,Dr. Thomas Klein,80,60,True,Eisschlecken,False,0.0
+MA05,Clara Meyer,100,80,True,Normal,True,0.0
+MA06,Jenny Schulz,80,50,False,Gewitter,False,0.0 
