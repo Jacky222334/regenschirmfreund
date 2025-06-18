@@ -697,6 +697,114 @@ def main():
     
     st.title("🧊 NEO GLÜCKSRAD - KONSIL MATRIX 💎")
     
+    # Anleitung und Instruktionen
+    with st.expander("📋 **ANLEITUNG & BUTTON-INSTRUKTIONEN**", expanded=False):
+        st.markdown("""
+        ## 🚀 **Dashboard-Übersicht**
+        
+        ### 👩‍⚕️ **ARZT-DASHBOARD (Hauptbereich)**
+        
+        #### **1. Anwesenheits-Kontrolle:**
+        - ✅ **Morgen anwesend**: Häkchen = Mitarbeiter ist morgens verfügbar
+        - ✅ **Nachmittag anwesend**: Häkchen = Mitarbeiter ist nachmittags verfügbar
+        - ⚠️ **Wichtig**: Nur anwesende Mitarbeiter werden für Konsile berücksichtigt!
+        
+        #### **2. Wetter-Status (Verfügbarkeit):**
+        - 🌤️ **Normal**: 100% verfügbar für Konsile
+        - ☀️ **Sonnenschein**: 80% verfügbar (reduzierte Bereitschaft)
+        - 🍦 **Eisschlecken**: 30% verfügbar (sehr beschäftigt)
+        - ⛈️ **Gewitter**: 0% verfügbar (nicht verfügbar)
+        - 🌂 **Regenschirm**: Spezial-Bonus bei Eisschlecken (100% statt 30%)
+        
+        #### **3. Konsil-Zuweisung:**
+        
+        **🔍 VORSCHAU-MODUS:**
+        - 🔄 **"Nächste Person"**: Zeigt nur VORSCHAU der nächsten Zuweisung
+        - ❌ **Keine echte Zuweisung!** Nur zum Schauen
+        - 🔄 Klicken Sie mehrmals für verschiedene Vorschläge
+        
+        **✅ ECHTE ZUWEISUNG:**
+        - 🚀 **"GO! Zuweisen"**: Führt die ECHTE Zuweisung durch
+        - ✅ **Wird geloggt** und in der Historie gespeichert
+        - ⚡ **Algorithmus berücksichtigt**: Anwesenheit + Wetter + Anstellung + Stationär-Anteil
+        
+        #### **4. Weitere Funktionen:**
+        - 📊 **Score anzeigen**: Zeigt die Berechnungs-Details für jeden Mitarbeiter
+        - 📝 **Logs anzeigen**: Zeigt die letzten 50 Konsil-Zuweisungen
+        - 🔄 **Reset bei Bedarf**: Wenn alle zugewiesen → automatischer Neustart
+        
+        ---
+        
+        ### 👥 **PERSONAL-DASHBOARD**
+        
+        #### **Nur-Lese-Ansicht für Mitarbeiter:**
+        - 👀 **Aktuelle Zuweisungen** ansehen
+        - 📊 **Eigener Status** überprüfen
+        - 📝 **Log-Historie** einsehen
+        - ❌ **Keine Änderungen möglich**
+        
+        ---
+        
+        ### 🧠 **INTELLIGENTER ALGORITHMUS**
+        
+        **Score-Berechnung berücksichtigt:**
+        1. **Anwesenheit** (0% wenn nicht da)
+        2. **Wetter-Faktor** (0-100% je nach Status)
+        3. **Anstellungsprozent** (Teilzeit vs. Vollzeit)
+        4. **Stationär-Anteil** (Höher = mehr Konsile)
+        5. **Regenschirm-Bonus** bei Eisschlecken
+        6. **Urlaubs-Reduktion** am Tag vorher
+        
+        **🎯 Höchster Score = Nächste Zuweisung**
+        
+        ---
+        
+        ### ⚡ **SCHNELL-ANLEITUNG**
+        
+        1. **Anwesenheit setzen** ✅
+        2. **Wetter wählen** 🌤️
+        3. **"Nächste Person"** für Vorschau 🔍
+        4. **"GO! Zuweisen"** für echte Zuweisung 🚀
+        5. **Log überprüfen** 📝
+        
+        """)
+
+    # Dashboard Auswahl
+    dashboard_choice = st.radio(
+        "🎯 **Dashboard auswählen:**",
+        ["👩‍⚕️ Arzt-Dashboard", "👥 Personal-Dashboard"],
+        horizontal=True
+    )
+    
+    # Sidebar mit Kurzanleitung
+    with st.sidebar:
+        st.markdown("### ⚡ **SCHNELL-HILFE**")
+        st.markdown("""
+        **🔍 VORSCHAU:**
+        - 🔄 "Nächste Person anzeigen" = Nur schauen
+        
+        **✅ ECHTE ZUWEISUNG:**
+        - 🚀 "GO!" = Endgültige Zuweisung
+        
+        **📋 ANWESENHEIT:**
+        - ✅ Häkchen = Verfügbar
+        - ❌ Kein Häkchen = Nicht verfügbar
+        
+        **🌤️ WETTER:**
+        - Normal = 100% verfügbar
+        - Sonnenschein = 80% verfügbar  
+        - Eisschlecken = 30% verfügbar
+        - Gewitter = 0% verfügbar
+        - 🌂 Regenschirm = Eisschlecken-Bonus
+        """)
+        
+        st.markdown("---")
+        st.markdown("**🧠 ALGORITHMUS:**")
+        st.markdown("Höchster Score = Nächste Zuweisung")
+        
+        if st.button("📋 Vollständige Anleitung anzeigen", help="Öffnet die komplette Anleitung oben"):
+            st.info("👆 Vollständige Anleitung am Seitenanfang verfügbar!")
+    
     # Lade Mitarbeiterdaten für Anwesenheits-Widgets
     employee_data = load_employee_data()
     if not employee_data.empty:
@@ -772,8 +880,9 @@ def show_doctor_dashboard():
         with col2:
             st.metric("Score", f"{next_person['score']:.2f}")
         with col3:
+            st.markdown("**🚀 ECHTE ZUWEISUNG:**")
             # GO Button für echte Zuweisung
-            if st.button("🚀 GO!", type="primary", help="Person zuweisen"):
+            if st.button("🚀 GO!", type="primary", help="✅ ECHTE ZUWEISUNG: Weist den Mitarbeiter endgültig zu und speichert es im Log!"):
                 assign_next_person()
                 st.success(f"✅ {next_person['name']} wurde zugewiesen!")
                 # Zurücksetzen der Preview-Liste nach echter Zuweisung
@@ -804,7 +913,8 @@ def show_doctor_dashboard():
             st.rerun()
     
     # Button zum Anzeigen der nächsten Person (nur Vorschau, keine echte Zuweisung)
-    if st.button("🔄 Nächste Person anzeigen", type="secondary"):
+    st.markdown("**🔍 VORSCHAU-MODUS:**")
+    if st.button("🔄 Nächste Person anzeigen", type="secondary", help="👁️ NUR VORSCHAU: Zeigt nächste Person ohne echte Zuweisung. Zum Testen und Schauen!"):
         # Erstelle eine separate Preview-Liste für die Anzeige
         if 'preview_assigned' not in st.session_state:
             st.session_state.preview_assigned = []
