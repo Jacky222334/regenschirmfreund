@@ -579,10 +579,29 @@ def get_mini_employee_avatar(ma_code):
 # ---------- LOAD DATA ----------
 EMP_FILE = Path("data/employees.csv")
 if not EMP_FILE.exists():
-    st.error("data/employees.csv nöd gfunde – bitte Datei hinzuefüege.")
-    st.stop()
-
-df_emp = pd.read_csv(EMP_FILE)
+    st.error("❌ data/employees.csv nöd gfunde – bitte Datei hinzuefüege.")
+    st.warning("⚠️ Demo-Modus: App startet ohni Mitarbeiterdaten. Upload de CSV für volli Funktionalität.")
+    # Create empty dataframe with required columns for demo mode
+    df_emp = pd.DataFrame({
+        "name": ["DEMO"],
+        "kuerzel": ["DEMO"], 
+        "anstellungs_prozent": [100],
+        "stationaer_anteil": [50],
+        "verfuegbar": [True]
+    })
+else:
+    try:
+        df_emp = pd.read_csv(EMP_FILE)
+    except Exception as e:
+        st.error(f"❌ Fehler bim Lade vo employees.csv: {e}")
+        st.warning("⚠️ Demo-Modus aktiviert")
+        df_emp = pd.DataFrame({
+            "name": ["DEMO"],
+            "kuerzel": ["DEMO"], 
+            "anstellungs_prozent": [100],
+            "stationaer_anteil": [50],
+            "verfuegbar": [True]
+        })
 # Use 'name' column as the MA identifier (contains the actual abbreviations like CA, BA, etc.)
 if 'name' in df_emp.columns:
     df_emp["MA"] = df_emp["name"]
