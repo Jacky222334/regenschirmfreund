@@ -1,7 +1,7 @@
 kuerzel,name,anstellungs_prozent,stationaer_anteil,verfuegbar,weather,regenschirm,score
-MA01,BA,100,60,,Normal,,0.0
-MA02,AN,80,50,,Normal,,0.0
-MA03,LM,100,70,,Normal,True,0.0
-MA04,TK,80,60,,Gewitter,,0.0
-MA05,CM,100,80,,Normal,,0.0
-MA06,JS,80,50,,Normal,,0.0
+MA01,BA,100,70,True,Eisschlecken,1,0
+MA02,AN,80,70,True,Normal,0,0
+MA03,JU,100,70,True,Gewitter,1,0
+MA04,VE,80,100,True,Gewitter,0,0
+MA05,CA,100,70,True,Normal,0,0
+MA06,SA,80,70,True,Normal,0,0
