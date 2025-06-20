@@ -1062,190 +1062,358 @@ if "flowchart_steps" not in st.session_state:
         "team_benachrichtigt": False
     }
 
-# Interactive step buttons
-st.markdown("**🎯 Schritt für Schritt abarbeite:**")
-
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("✅ Start: Konsilanfrag erhalte", key="step_start"):
-        st.session_state.flowchart_steps["start"] = True
-        st.rerun()
-
-    if st.session_state.flowchart_steps["start"]:
-        st.success("✅ Konsilanfrag erhalte")
-        
-        # Next decision
-        subcol1, subcol2 = st.columns(2)
-        if subcol1.button("✅ Konsil agnoh", key="konsil_ja"):
-            st.session_state.flowchart_steps["konsil_angenommen"] = True
-            st.rerun()
-        if subcol2.button("❌ Konsil abglehnt", key="konsil_nein"):
-            st.session_state.flowchart_steps["konsil_angenommen"] = False
-            st.rerun()
-
-with col2:
-    if st.session_state.flowchart_steps["konsil_angenommen"] == True:
-        st.success("✅ Konsil agnoh")
-        
-        # Next decision
-        subcol1, subcol2 = st.columns(2)
-        if subcol1.button("✅ Vor Ort am selbe Tag erledigt", key="vor_ort_ja"):
-            st.session_state.flowchart_steps["vor_ort_abgeschlossen"] = True
-            st.rerun()
-        if subcol2.button("❌ Nöd vor Ort erledigt", key="vor_ort_nein"):
-            st.session_state.flowchart_steps["vor_ort_abgeschlossen"] = False
-            st.rerun()
-    
-    elif st.session_state.flowchart_steps["konsil_angenommen"] == False:
-        st.error("❌ Konsil abglehnt - Workflow beendet")
-
-# Continue workflow based on decisions
-if st.session_state.flowchart_steps["vor_ort_abgeschlossen"] == True:
-    st.success("🎉 Workflow übersprunge - Konsil erledigt!")
-    
-elif st.session_state.flowchart_steps["vor_ort_abgeschlossen"] == False:
-    st.info("➡️ Konsil-Workflow wird fortgsetzt...")
-    
-    col3, col4 = st.columns(2)
-    with col3:
-        if st.button("✅ Konsil-Iitrag erstellt", key="eintrag_erstellt"):
-            st.session_state.flowchart_steps["eintrag_erstellt"] = True
-            st.rerun()
-    
-    if st.session_state.flowchart_steps["eintrag_erstellt"]:
-        st.success("✅ Konsil-Iitrag erstellt")
-        
-        with col4:
-            subcol1, subcol2 = st.columns(2)
-            if subcol1.button("✅ Patient erreichbar", key="patient_ja"):
-                st.session_state.flowchart_steps["patient_erreichbar"] = True
-                st.rerun()
-            if subcol2.button("❌ Patient nöd erreichbar", key="patient_nein"):
-                st.session_state.flowchart_steps["patient_erreichbar"] = False
-                st.rerun()
-
-# Continue based on patient reachability
-if st.session_state.flowchart_steps["patient_erreichbar"] == True:
-    col5, col6 = st.columns(2)
-    with col5:
-        if st.button("✅ Vorläufigs Besuchsdatum iitrage", key="datum_eingetragen"):
-            st.session_state.flowchart_steps["datum_eingetragen"] = True
-            st.rerun()
-    
-    if st.session_state.flowchart_steps["datum_eingetragen"]:
-        st.success("✅ Datum iitrage")
-        with col6:
-            if st.button("✅ Team benachrichtigt", key="team_benachrichtigt"):
-                st.session_state.flowchart_steps["team_benachrichtigt"] = True
-                st.rerun()
-        
-        if st.session_state.flowchart_steps["team_benachrichtigt"]:
-            st.success("🎉 Workflow abgschlosse! Team isch informiert.")
-
-elif st.session_state.flowchart_steps["patient_erreichbar"] == False:
-    col7, col8 = st.columns(2)
-    with col7:
-        if st.button("✅ Sekretariat benachrichtigt", key="sek_benachrichtigt"):
-            st.session_state.flowchart_steps["sekretariat_benachrichtigt"] = True
-            st.rerun()
-    
-    if st.session_state.flowchart_steps["sekretariat_benachrichtigt"]:
-        st.success("✅ Sekretariat benachrichtigt")
-        with col8:
-            if st.button("✅ Patient agrueffe & dokumentiert", key="patient_angerufen"):
-                st.session_state.flowchart_steps["patient_angerufen"] = True
-                st.rerun()
-        
-        if st.session_state.flowchart_steps["patient_angerufen"]:
-            st.success("🎉 Workflow abgschlosse! Patient isch kontaktiert.")
-
-# Reset button
-if any(st.session_state.flowchart_steps.values()):
-    if st.button("🔄 Workflow zurücksetze", key="reset_workflow"):
-        st.session_state.flowchart_steps = {key: False if isinstance(val, bool) else None for key, val in st.session_state.flowchart_steps.items()}
-        st.rerun()
-
-# Dynamic Mermaid flowchart based on current state
-def generate_dynamic_flowchart():
-    """Generate Mermaid flowchart based on current workflow state"""
-    steps = st.session_state.flowchart_steps
-    
-    # Base flowchart
-    flowchart = """
-flowchart TD
-    subgraph s1["🚀 Zero Verlus"]
-        n4["📋 SOP 1"]
-    end
+# CSS for flowchart cards and arrows
+flowchart_css = """
+<style>
+.flowchart-card {
+    background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+    border: 2px solid #CCFF00;
+    border-radius: 12px;
+    padding: 1rem;
+    margin: 0.5rem;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(204, 255, 0, 0.3);
+    transition: all 0.3s ease;
+}
+.flowchart-card:hover {
+    box-shadow: 0 0 30px rgba(204, 255, 0, 0.5);
+    transform: translateY(-2px);
+}
+.flowchart-card.completed {
+    border-color: #39FF14;
+    background: linear-gradient(135deg, #1a3a1a, #2a4a2a);
+}
+.flowchart-card.inactive {
+    border-color: #666;
+    background: linear-gradient(135deg, #1a1a1a, #1a1a1a);
+    opacity: 0.5;
+}
+.flowchart-arrow {
+    text-align: center;
+    font-size: 2rem;
+    color: #CCFF00;
+    margin: 0.5rem 0;
+    text-shadow: 0 0 10px rgba(204, 255, 0, 0.5);
+}
+.flowchart-decision {
+    background: linear-gradient(135deg, #3a1a1a, #4a2a2a);
+    border: 2px solid #FFFF00;
+}
+.flowchart-decision.completed {
+    border-color: #39FF14;
+    background: linear-gradient(135deg, #1a3a1a, #2a4a2a);
+}
+.choice-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+.choice-btn {
+    background: #000;
+    border: 2px solid #CCFF00;
+    color: #CCFF00;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.choice-btn:hover {
+    background: #CCFF00;
+    color: #000;
+}
+.choice-btn.selected {
+    background: #39FF14;
+    border-color: #39FF14;
+    color: #000;
+}
+</style>
 """
-    
-    # Add nodes based on completed steps
-    if steps["start"]:
-        flowchart += '    A["✅ Start: Konsilanfrag erhalte"] --> B{"Konsil agnoh?"}\n'
-        
-        if steps["konsil_angenommen"] == True:
-            flowchart += '    B -- "✅ Ja" --> C{"Vor Ort am selbe Tag abgschlosse?"}\n'
-            
-            if steps["vor_ort_abgeschlossen"] == True:
-                flowchart += '    C -- "✅ Ja" --> I["🎉 Workflow übersprunge - Konsil erledigt"]\n'
-                flowchart += '    I --> H["🏁 Ende"]\n'
-            elif steps["vor_ort_abgeschlossen"] == False:
-                flowchart += '    C -- "❌ Nei" --> D["Konsil-Iitrag erstelle"]\n'
-                
-                if steps["eintrag_erstellt"]:
-                    flowchart += '    D --> F2{"Patient erreichbar?"}\n'
-                    
-                    if steps["patient_erreichbar"] == True:
-                        flowchart += '    F2 -- "✅ Ja" --> E["Vorläufigs Besuchsdatum iitrage"]\n'
-                        if steps["datum_eingetragen"]:
-                            flowchart += '    E --> F["Team benachrichtige"]\n'
-                            if steps["team_benachrichtigt"]:
-                                flowchart += '    F --> H["🏁 Ende"]\n'
-                    elif steps["patient_erreichbar"] == False:
-                        flowchart += '    F2 -- "❌ Nei" --> J["Sekretariat benachrichtige"]\n'
-                        if steps["sekretariat_benachrichtigt"]:
-                            flowchart += '    J --> K["Patient agrueffe & dokumentiere"]\n'
-                            if steps["patient_angerufen"]:
-                                flowchart += '    K --> H["🏁 Ende"]\n'
-        
-        elif steps["konsil_angenommen"] == False:
-            flowchart += '    B -- "❌ Nei" --> G["🛑 Ende: Kei witeri Schritt"]\n'
-    else:
-        flowchart += '    A["⏳ Start: Konsilanfrag erhalte"] -.-> B["..."]\n'
-    
-    # Add SOP note
-    flowchart += '    n2["📝 SOP nur relevant wenn Konsil nöd innerhalb 24h erledigt werde cha"]\n'
-    flowchart += '    n2@{ shape: text}\n'
-    
-    return flowchart
 
-# Display dynamic flowchart
-st.markdown("**🗺️ Dynamischs Flowchart:**")
-dynamic_chart = generate_dynamic_flowchart()
+st.markdown(flowchart_css, unsafe_allow_html=True)
 
-try:
+# Reset button at the top
+if any(v for v in st.session_state.flowchart_steps.values() if v):
+    col_reset, col_spacer = st.columns([1, 4])
+    with col_reset:
+        if st.button("🔄 Reset", key="reset_workflow", help="Workflow neu starte"):
+            st.session_state.flowchart_steps = {key: False if isinstance(val, bool) else None for key, val in st.session_state.flowchart_steps.items()}
+            st.rerun()
+
+# Step 1: Start
+card_class = "completed" if st.session_state.flowchart_steps["start"] else ""
+st.markdown(f"""
+<div class="flowchart-card {card_class}">
+    <h4>🚀 Start</h4>
+    <p>Konsilanfrag erhalte</p>
+</div>
+""", unsafe_allow_html=True)
+
+if not st.session_state.flowchart_steps["start"]:
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("✅ Start", key="step_start", help="Workflow starte"):
+            st.session_state.flowchart_steps["start"] = True
+            st.rerun()
+else:
+    st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+    
+    # Step 2: Konsil Decision
+    decision_class = "completed" if st.session_state.flowchart_steps["konsil_angenommen"] is not None else ""
     st.markdown(f"""
-    <div class="mermaid">
-    {dynamic_chart}
+    <div class="flowchart-card flowchart-decision {decision_class}">
+        <h4>❓ Entscheidig</h4>
+        <p>Konsil agnoh oder abglehnt?</p>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-    <script>
-        mermaid.initialize({{
-            startOnLoad: true,
-            theme: 'dark',
-            themeVariables: {{
-                primaryColor: '#CCFF00',
-                primaryTextColor: '#000000',
-                primaryBorderColor: '#39FF14',
-                lineColor: '#CCFF00',
-                secondaryColor: '#39FF14',
-                tertiaryColor: '#FFFF00'
-            }}
-        }});
-    </script>
     """, unsafe_allow_html=True)
-except:
-    st.code(dynamic_chart, language="mermaid")
+    
+    if st.session_state.flowchart_steps["konsil_angenommen"] is None:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            subcol1, subcol2 = st.columns(2)
+            with subcol1:
+                if st.button("✅ Agnoh", key="konsil_ja", help="Konsil agnoh"):
+                    st.session_state.flowchart_steps["konsil_angenommen"] = True
+                    st.rerun()
+            with subcol2:
+                if st.button("❌ Abglehnt", key="konsil_nein", help="Konsil abglehnt"):
+                    st.session_state.flowchart_steps["konsil_angenommen"] = False
+                    st.rerun()
+    
+    # Show result of konsil decision
+    if st.session_state.flowchart_steps["konsil_angenommen"] == False:
+        st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="flowchart-card completed">
+            <h4>🛑 Ende</h4>
+            <p>Kei witeri Schritt - Konsil abglehnt</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    elif st.session_state.flowchart_steps["konsil_angenommen"] == True:
+        st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+        
+        # Step 3: Vor Ort Decision
+        decision_class = "completed" if st.session_state.flowchart_steps["vor_ort_abgeschlossen"] is not None else ""
+        st.markdown(f"""
+        <div class="flowchart-card flowchart-decision {decision_class}">
+            <h4>🏥 Vor Ort</h4>
+            <p>Am selbe Tag vor Ort abgschlosse?</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.session_state.flowchart_steps["vor_ort_abgeschlossen"] is None:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                subcol1, subcol2 = st.columns(2)
+                with subcol1:
+                    if st.button("✅ Ja", key="vor_ort_ja", help="Vor Ort erledigt"):
+                        st.session_state.flowchart_steps["vor_ort_abgeschlossen"] = True
+                        st.rerun()
+                with subcol2:
+                    if st.button("❌ Nei", key="vor_ort_nein", help="Nöd vor Ort erledigt"):
+                        st.session_state.flowchart_steps["vor_ort_abgeschlossen"] = False
+                        st.rerun()
+        
+        # Branch A: Vor Ort abgeschlossen
+        if st.session_state.flowchart_steps["vor_ort_abgeschlossen"] == True:
+            st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="flowchart-card completed">
+                <h4>🎉 Workflow übersprunge</h4>
+                <p>Konsil bereits erledigt - kei witeri Schritt nötig</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Branch B: Nicht vor Ort abgeschlossen
+        elif st.session_state.flowchart_steps["vor_ort_abgeschlossen"] == False:
+            st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+            
+            # Step 4: Eintrag erstellen
+            card_class = "completed" if st.session_state.flowchart_steps["eintrag_erstellt"] else ""
+            st.markdown(f"""
+            <div class="flowchart-card {card_class}">
+                <h4>📝 Konsil-Iitrag</h4>
+                <p>Konsil-Iitrag im System erstelle</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if not st.session_state.flowchart_steps["eintrag_erstellt"]:
+                col1, col2, col3 = st.columns([1, 1, 1])
+                with col2:
+                    if st.button("✅ Erstellt", key="eintrag_erstellt", help="Iitrag erstellt"):
+                        st.session_state.flowchart_steps["eintrag_erstellt"] = True
+                        st.rerun()
+            else:
+                st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                
+                # Step 5: Patient erreichbar?
+                decision_class = "completed" if st.session_state.flowchart_steps["patient_erreichbar"] is not None else ""
+                st.markdown(f"""
+                <div class="flowchart-card flowchart-decision {decision_class}">
+                    <h4>📞 Patient</h4>
+                    <p>Patient am gplante Tag erreichbar?</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if st.session_state.flowchart_steps["patient_erreichbar"] is None:
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col2:
+                        subcol1, subcol2 = st.columns(2)
+                        with subcol1:
+                            if st.button("✅ Erreichbar", key="patient_ja", help="Patient erreichbar"):
+                                st.session_state.flowchart_steps["patient_erreichbar"] = True
+                                st.rerun()
+                        with subcol2:
+                            if st.button("❌ Nöd erreichbar", key="patient_nein", help="Patient nöd erreichbar"):
+                                st.session_state.flowchart_steps["patient_erreichbar"] = False
+                                st.rerun()
+                
+                # Patient erreichbar - Path A
+                if st.session_state.flowchart_steps["patient_erreichbar"] == True:
+                    st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                    
+                    # Datum eintragen
+                    card_class = "completed" if st.session_state.flowchart_steps["datum_eingetragen"] else ""
+                    st.markdown(f"""
+                    <div class="flowchart-card {card_class}">
+                        <h4>📅 Datum</h4>
+                        <p>Vorläufigs Besuchsdatum iitrage</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if not st.session_state.flowchart_steps["datum_eingetragen"]:
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                        with col2:
+                            if st.button("✅ Iitrage", key="datum_eingetragen", help="Datum iitrage"):
+                                st.session_state.flowchart_steps["datum_eingetragen"] = True
+                                st.rerun()
+                    else:
+                        st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                        
+                        # Team benachrichtigen
+                        card_class = "completed" if st.session_state.flowchart_steps["team_benachrichtigt"] else ""
+                        st.markdown(f"""
+                        <div class="flowchart-card {card_class}">
+                            <h4>👥 Team</h4>
+                            <p>Team benachrichtige - Konsil sichtbar mache</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if not st.session_state.flowchart_steps["team_benachrichtigt"]:
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col2:
+                                if st.button("✅ Benachrichtigt", key="team_benachrichtigt", help="Team informiert"):
+                                    st.session_state.flowchart_steps["team_benachrichtigt"] = True
+                                    st.rerun()
+                        else:
+                            st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                            st.markdown("""
+                            <div class="flowchart-card completed">
+                                <h4>🏁 Workflow abgschlosse</h4>
+                                <p>Team isch informiert - Konsil bereit</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                
+                # Patient nicht erreichbar - Path B
+                elif st.session_state.flowchart_steps["patient_erreichbar"] == False:
+                    st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                    
+                    # Sekretariat benachrichtigen
+                    card_class = "completed" if st.session_state.flowchart_steps["sekretariat_benachrichtigt"] else ""
+                    st.markdown(f"""
+                    <div class="flowchart-card {card_class}">
+                        <h4>📞 Sekretariat</h4>
+                        <p>Sekretariat benachrichtige - Status in KISIM aktualisiere</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if not st.session_state.flowchart_steps["sekretariat_benachrichtigt"]:
+                        col1, col2, col3 = st.columns([1, 1, 1])
+                        with col2:
+                            if st.button("✅ Benachrichtigt", key="sek_benachrichtigt", help="Sekretariat informiert"):
+                                st.session_state.flowchart_steps["sekretariat_benachrichtigt"] = True
+                                st.rerun()
+                    else:
+                        st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                        
+                        # Patient anrufen
+                        card_class = "completed" if st.session_state.flowchart_steps["patient_angerufen"] else ""
+                        st.markdown(f"""
+                        <div class="flowchart-card {card_class}">
+                            <h4>📱 Anruf</h4>
+                            <p>Sekretariat rueft Patient a, fragt nach PO-Bedarf, dokumentiert in KISIM</p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if not st.session_state.flowchart_steps["patient_angerufen"]:
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            with col2:
+                                if st.button("✅ Agrueffe", key="patient_angerufen", help="Patient kontaktiert"):
+                                    st.session_state.flowchart_steps["patient_angerufen"] = True
+                                    st.rerun()
+                        else:
+                            st.markdown('<div class="flowchart-arrow">⬇️</div>', unsafe_allow_html=True)
+                            st.markdown("""
+                            <div class="flowchart-card completed">
+                                <h4>🏁 Workflow abgschlosse</h4>
+                                <p>Patient isch kontaktiert - Bedarf dokumentiert</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+# Progress indicator
+if st.session_state.flowchart_steps["start"]:
+    total_steps = 0
+    completed_steps = 0
+    
+    # Count possible steps based on path taken
+    if st.session_state.flowchart_steps["konsil_angenommen"] == True:
+        if st.session_state.flowchart_steps["vor_ort_abgeschlossen"] == True:
+            total_steps = 3  # Start + Konsil + Vor Ort
+            completed_steps = sum([st.session_state.flowchart_steps["start"], 
+                                 st.session_state.flowchart_steps["konsil_angenommen"] is not None,
+                                 st.session_state.flowchart_steps["vor_ort_abgeschlossen"] is not None])
+        elif st.session_state.flowchart_steps["vor_ort_abgeschlossen"] == False:
+            if st.session_state.flowchart_steps["patient_erreichbar"] == True:
+                total_steps = 6  # Full path A
+                completed_steps = sum([st.session_state.flowchart_steps["start"], 
+                                     st.session_state.flowchart_steps["konsil_angenommen"] is not None,
+                                     st.session_state.flowchart_steps["vor_ort_abgeschlossen"] is not None,
+                                     st.session_state.flowchart_steps["eintrag_erstellt"],
+                                     st.session_state.flowchart_steps["patient_erreichbar"] is not None,
+                                     st.session_state.flowchart_steps["datum_eingetragen"],
+                                     st.session_state.flowchart_steps["team_benachrichtigt"]])
+            elif st.session_state.flowchart_steps["patient_erreichbar"] == False:
+                total_steps = 6  # Full path B
+                completed_steps = sum([st.session_state.flowchart_steps["start"], 
+                                     st.session_state.flowchart_steps["konsil_angenommen"] is not None,
+                                     st.session_state.flowchart_steps["vor_ort_abgeschlossen"] is not None,
+                                     st.session_state.flowchart_steps["eintrag_erstellt"],
+                                     st.session_state.flowchart_steps["patient_erreichbar"] is not None,
+                                     st.session_state.flowchart_steps["sekretariat_benachrichtigt"],
+                                     st.session_state.flowchart_steps["patient_angerufen"]])
+            else:
+                total_steps = 4
+                completed_steps = sum([st.session_state.flowchart_steps["start"], 
+                                     st.session_state.flowchart_steps["konsil_angenommen"] is not None,
+                                     st.session_state.flowchart_steps["vor_ort_abgeschlossen"] is not None,
+                                     st.session_state.flowchart_steps["eintrag_erstellt"]])
+        else:
+            total_steps = 2
+            completed_steps = sum([st.session_state.flowchart_steps["start"], 
+                                 st.session_state.flowchart_steps["konsil_angenommen"] is not None])
+    elif st.session_state.flowchart_steps["konsil_angenommen"] == False:
+        total_steps = 2
+        completed_steps = 2
+    else:
+        total_steps = 1
+        completed_steps = 1
+    
+    if total_steps > 0:
+        progress = completed_steps / total_steps
+        st.progress(progress, text=f"Fortschritt: {completed_steps}/{total_steps} Schritt abgschlosse")
+
+st.markdown("---")
 
 # ---------- STATIC SOPs ----------
 st.markdown("---")
